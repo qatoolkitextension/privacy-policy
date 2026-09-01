@@ -418,7 +418,7 @@
   <div class="hero">
     <div class="hero-label">Chrome Extension · MV3</div>
     <h1 class="hero-title">Privacy Policy</h1>
-    <div class="hero-meta">Effective: May 20, 2026 &nbsp;·&nbsp; Last updated: June 2, 2026</div>
+    <div class="hero-meta">Effective: May 20, 2026 &nbsp;·&nbsp; Last updated: August 25, 2026</div>
   </div>
 
   <div class="summary-grid">
@@ -496,9 +496,12 @@
       </div>
       <p>QA Toolkit is a browser-based developer and QA tool. All features run entirely within your browser — no data ever leaves your device.</p>
       <p><strong>Visual inspection</strong> — CSS Inspector, Pixel Ruler, Color Picker, and iFrame overlay inject UI overlays into the active page. They do not read or transmit page content.</p>
-      <p><strong>Network inspection</strong> — the Redirect Checker observes navigation requests for the active tab (URLs and HTTP status codes) in memory to display the redirect chain. The Mock Server can intercept <code>fetch</code> and <code>XMLHttpRequest</code> calls, return configured mock responses, and optionally log real network requests temporarily in memory while the popup is open. This log is never stored persistently and is never transmitted.</p>
+      <p><strong>Network inspection</strong> — the Redirect Checker observes navigation requests for the active tab (URLs, HTTP status codes, and response headers) in memory to display the full redirect chain, including server-side (HTTP 3xx) redirects and client-side redirects triggered by a page itself (meta-refresh tags or JavaScript navigation). This is done by reading navigation timing/transition information Chrome already exposes for the active tab — no page content is read or transmitted. The Mock Server can intercept <code>fetch</code> and <code>XMLHttpRequest</code> calls, return configured mock responses, and optionally log real network requests temporarily in memory while the popup is open. This log is never stored persistently and is never transmitted.</p>
       <p><strong>Header modification</strong> — the User Agent Switcher overrides the <code>User-Agent</code> request header for the current tab only, using a session rule that is automatically removed when Chrome closes.</p>
       <p><strong>Content inspection</strong> — the OG Inspector and JSON Formatter read the active tab's content to display or format it. No data is transmitted externally.</p>
+      <p><strong>Accessibility auditing</strong> — the Accessibility Checker runs axe-core (a vendored, open-source accessibility engine bundled directly inside the extension — see Third Parties) against the active page's DOM to find WCAG issues, approximate an accessibility tree, and test keyboard focus behavior. Everything — the scan itself, audit history, and any ignore rules you set — runs and stays entirely in your browser; opening its full dashboard in Chrome's side panel does not send anything anywhere. Exported reports (JSON/CSV/HTML) are generated and saved to your device locally; nothing is uploaded.</p>
+      <p><strong>Storage inspection</strong> — the Storage Inspector reads and lets you edit <code>localStorage</code>, <code>sessionStorage</code>, and cookies for the active tab, entirely on request. Web storage is read/written directly in the page's own context; cookies are read/written through Chrome's <code>cookies</code> API, which can also see and edit HttpOnly cookies (something page JavaScript cannot do) so you can test cookie-based flows fully. Values are shown only in the popup while it's open and are never written to <code>chrome.storage</code> or transmitted anywhere — every add, edit, and delete is a change you explicitly make to your own browser's storage for that site, exactly as if you'd edited it in Chrome DevTools.</p>
+      <p><strong>Encoding and decoding</strong> — the Decoder converts URL encoding, HTML entities, Base64, Unicode escapes, JSON, and JWT tokens, entirely with built-in browser APIs (no external decoding service of any kind). A JWT is only ever decoded for display — its signature is never verified, generated, or modified. Its optional "Pick element" button reads a single value (an input's value, a link's <code>href</code>, or a similar attribute) from an element you click on the page, only when you start that action; the value stays in the popup's memory and is never transmitted anywhere.</p>
       <p><strong>Image generation</strong> — the Lorem img tool generates placeholder test images entirely within your browser using the Canvas API. All rendering is local; no image data is sent to any server. Generated images are either downloaded to your device or copied to the clipboard — both actions are user-initiated and local-only.</p>
       <p>No personal information is collected, transmitted, or shared with any external party under any circumstances.</p>
     </section>
@@ -517,6 +520,7 @@
         <li>Location data or device identifiers</li>
         <li>Usage analytics or telemetry of any kind</li>
       </ul>
+      <p>This means the extension itself — as opposed to Chrome's own storage for the site you're viewing — never collects, stores, or transmits these. The one deliberate exception is the Storage Inspector: at your request, it reads localStorage/sessionStorage/cookie values from the active tab so you can view and edit them in the popup, exactly as Chrome DevTools would. Those values stay in the popup's memory and in the site's own browser storage — the extension does not copy them anywhere else.</p>
     </section>
 
     <section id="local-storage">
@@ -535,6 +539,8 @@
         <li>Lorem Ipsum preferences (text type, character count, paragraph count)</li>
         <li>Lorem img preferences (image size, background style, colors, label, format, quality, EXIF orientation)</li>
         <li>Last selected country and last generated synthetic record in the User Data Generator (randomly generated test data — not real personal information)</li>
+        <li>Accessibility Checker audit history (up to the last 50 audits, stored locally, with long HTML snippets truncated to stay within Chrome's storage quota)</li>
+        <li>Accessibility Checker ignore rules (issues or elements you've chosen to hide from future audits)</li>
       </ul>
       <p>Preferences stored in <code>storage.sync</code> may be synced across your own devices by Chrome if you have Chrome Sync enabled. This sync is handled entirely by Google's Chrome infrastructure — the extension itself does not transmit any data.</p>
       <p>The User Data Generator produces entirely synthetic, randomly generated test data (names, addresses, phone numbers, emails). It does not collect, read, or store any real personal information from you or from visited pages.</p>
@@ -566,12 +572,24 @@
           <div class="perm-desc">Used by the Redirect Checker to observe main-frame navigation in real time, recording each hop's URL and status code in memory. No data is transmitted externally.</div>
         </div>
         <div class="perm-card">
+          <div class="perm-name">webNavigation</div>
+          <div class="perm-desc">Used by the Redirect Checker to detect when a page's own meta-refresh tag or JavaScript triggers the next navigation, so that hop can be linked into the same redirect chain instead of being shown as unrelated. No page content is read; only navigation metadata (URL and transition type) is used, in memory only.</div>
+        </div>
+        <div class="perm-card">
           <div class="perm-name">declarativeNetRequest</div>
           <div class="perm-desc">Enables rule-based modification of page resources. All rules are applied locally and defined by you.</div>
         </div>
         <div class="perm-card">
+          <div class="perm-name">cookies</div>
+          <div class="perm-desc">Used by the Storage Inspector to read and edit cookies (including HttpOnly ones) for the active tab, at your request. Cookie data stays in the popup and Chrome's own cookie store — it is never sent anywhere.</div>
+        </div>
+        <div class="perm-card">
           <div class="perm-name">tabs + &lt;all_urls&gt;</div>
           <div class="perm-desc">Required to detect the active tab, inject content scripts, and apply tools across all sites. Tab URLs are processed in memory only — never stored persistently or transmitted.</div>
+        </div>
+        <div class="perm-card">
+          <div class="perm-name">sidePanel</div>
+          <div class="perm-desc">Lets the Accessibility Checker open its full audit dashboard in Chrome's side panel. Only opens when you explicitly launch it from the extension popup.</div>
         </div>
       </div>
     </section>
@@ -582,6 +600,7 @@
         <h2>Third Parties</h2>
       </div>
       <p>This extension does not integrate with any third-party analytics, advertising, or data-processing services. No data is shared with or sold to any third party under any circumstances.</p>
+      <p>The Accessibility Checker bundles <strong>axe-core</strong>, an open-source accessibility testing engine (MPL-2.0 license) by Deque Systems, directly inside the extension package. It runs entirely inside your browser against the active page's DOM — it does not load anything from a remote server or send any data to Deque Systems or anyone else. This is a bundled library, not a third-party service.</p>
     </section>
 
     <section id="children">
@@ -615,7 +634,7 @@
   <div class="container">
     <div class="footer-inner">
       <span>QA Toolkit &mdash; Privacy Policy</span>
-      <span>Last updated: June 2, 2026</span>
+      <span>Last updated: August 25, 2026</span>
     </div>
   </div>
 </footer>
